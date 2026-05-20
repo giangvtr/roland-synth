@@ -1,17 +1,36 @@
-# aalto303
-
+# Roland TB-303 Synthethizer simplified clone
+- The original synth: https://en.wikipedia.org/wiki/Roland_TB-303
+- Signal flow: https://www.tinyloops.com/tb303/sound_signalflow.html
 
 ## Tasks
-
 * Scaffold (Placeholders for VCO VCF VCA ENV DECAY(?)) Giang
 * VCF (Ladder Filter) (Maybe?????) María
 * VCO (Giang)
 * VCA (Giang)
 * ENV (Easy for AMP) (Moritz)
 * ENV (Crazy for Filter) (Moritz)
-* UI (Moritz)
+* UI (Moritz): Modify TB303Editor.h/.cpp
 
+## Needed DSP Blocks
+- Oscillator: `project/DSP/Oscillator` <> VCO
+- EnvelopeGenerator
+- Ramp
+- Filter
+- SynthVoice: structure combining oscillators, VCA/VCF envelopes, filter, LFO, ramps ==> fallbacks if we dont manage to make our own filter?
 
+- TB303Voice
+- LadderFilter
+- AccentController.h
+
+## Input knobs/Switch
+- Tuning
+- Cut-off freq
+- Resonance
+- Envelope modulation
+- Decay
+- Accent
+- Volume
+- Waveform switch (bool for Square or Saw)
 
 ## Getting started
 
