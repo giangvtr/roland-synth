@@ -50,26 +50,26 @@ public:
     void setWaveform(bool isSaw);
 
     // Tuning offset in semitones  [-12 .. +12]
-    void setTuning(float semitones);
+    void setTuning(float semitones, bool skipRamp = false);
 
     // Base cutoff frequency in Hz
-    void setFilterCutoff(float Hz);
+    void setFilterCutoff(float Hz, bool skipRamp = false);
 
     // Resonance [0 .. 1] — mapped internally to ladder Q range
-    void setFilterResonance(float norm);
+    void setFilterResonance(float norm, bool skipRamp = false);
 
     // Envelope modulation depth, bipolar [-1 .. +1]
     // Positive: envelope opens filter further. Negative: inverts.
-    void setEnvMod(float bipolar);
+    void setEnvMod(float bipolar, bool skipRamp = false);
 
     // VCA + VCF shared decay time in ms  [1 .. 1000]
-    void setDecayTime(float ms);
+    void setDecay(float ms);
 
     // Accent amount [0 .. 1]
     // Stored here so startNote can decide the boost magnitude.
-    void setAccentAmount(float norm);
+    void setAccent(float norm, bool skipRamp = false);
 
-    void setOutputVol(float dB, bool skipRamp);
+    void setVolume(float dB, bool skipRamp = false);
 
     // Slide on/off + time, slide time typically ~60 ms in the original
     //void setSlide(bool enabled, float timeSec = 0.06f);
@@ -118,19 +118,8 @@ private:
     float resonanceNorm { 0.f };
     float envModDepth { 0.f };           // bipolar [-1..1]
  
-    // --- Envelopes (decay-only) ---
-    // NOTE: EnvelopeGenerator is expected to support:
-    //   prepare(double sampleRate)
-    //   setAttackTime(float ms)
-    //   setDecayTime(float ms)
-    //   setSustainLevel(float norm)   -- set to 0 for decay-only
-    //   setReleaseTime(float ms)
-    //   noteOn()
-    //   noteOff()
-    //   float getNextSample()         -- returns [0..1]
-    //   bool isActive()
-    EnvelopeGenerator vcaEnv;
-    EnvelopeGenerator vcfEnv;
+    EnvelopeGenerator vcaEnv;   // easy Envelope gen
+    EnvelopeGenerator vcfEnv;   // crazy envelope gen
  
     // --- VCA ---
     Ramp<float> outputVolRamp;

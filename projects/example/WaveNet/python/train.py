@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
-from wavenet import WaveNet
+from projects.example.WaveNet.python.wavenet import WaveNet
 
 
 data_dir = '/home/epd/git/data/maestro-2017-3kHz-8bit-mulaw'

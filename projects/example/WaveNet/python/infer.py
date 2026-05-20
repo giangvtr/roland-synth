@@ -13,7 +13,7 @@ import torch
 from scipy.signal import resample
 from tqdm import tqdm
 
-from wavenet import WaveNet
+from projects.example.WaveNet.python.wavenet import WaveNet
 
 SAMPLE_RATE = 3000
 NUM_CLASSES = 256

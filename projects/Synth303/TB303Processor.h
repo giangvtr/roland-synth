@@ -34,12 +34,12 @@ namespace Param
         static constexpr float TuningMin { -12.f };
         static constexpr float TuningMax { 12.f };
         static constexpr float TuningInc { 0.01f };
-        static constexpr float TuningSkw { 0.5f };
+        static constexpr float TuningSkw { 1.0f };
 
         static constexpr float FilterFreqMin { 20.0f };
         static constexpr float FilterFreqMax { 20000.f };
         static constexpr float FilterFreqInc { 1.f };
-        static constexpr float FilterFreqSkw { 0.5f };
+        static constexpr float FilterFreqSkw { 0.15f };
 
         static constexpr float ResonanceMin { 0.0f };
         static constexpr float ResonanceMax { 1.0f };
@@ -58,7 +58,7 @@ namespace Param
 
         static constexpr float AccentMin { 0.f };
         static constexpr float AccentMax { 1.f };
-        static constexpr float AccentInc { 1.f };
+        static constexpr float AccentInc { 0.01f };
         static constexpr float AccentSkw { 1.f };
 
         static constexpr float VolumeMin { -60.f };

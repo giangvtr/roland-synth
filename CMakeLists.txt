@@ -36,21 +36,6 @@ set(gui_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/GUI)
 # MRTA framework helper variable
 set(mrta_source ${CMAKE_CURRENT_SOURCE_DIR}/mrta_utils)
 
-# Example project
-set(mfrtaa_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/MyFirstRealTimeAudioApp)
-
-add_plugin(mfrtaa
-    VERSION 0.1.0
-    PLUGIN_NAME "My First RT Audio App"
-    PROD_NAME MyFirstRTAudioApp
-    PROD_CODE Rtap
-    SYNTH FALSE
-    SOURCES
-        ${mfrtaa_source}/PluginEditor.cpp
-        ${mfrtaa_source}/PluginProcessor.cpp
-    INCLUDE_DIRS
-        ${mfrtaa_source})
-
 # Final project
 set(synth303_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/Synth303)
 add_plugin(synth303
@@ -70,4 +55,6 @@ add_plugin(synth303
         ${dsp_source}/LadderFilter.cpp
 
     INCLUDE_DIRS
-        ${synth303_source})
+        ${synth303_source}
+        ${dsp_source}
+)
