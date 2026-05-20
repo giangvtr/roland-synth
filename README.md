@@ -1,6 +1,17 @@
 # aalto303
 
 
+## Tasks
+
+* Scaffold (Placeholders for VCO VCF VCA ENV DECAY(?)) Giang
+* VCF (Ladder Filter) (Maybe?????) María
+* VCO (Giang)
+* VCA (Giang)
+* ENV (Easy for AMP) (Moritz)
+* ENV (Crazy for Filter) (Moritz)
+* UI (Moritz)
+
+
 
 ## Getting started
 
