@@ -11,26 +11,61 @@
 * ENV (Crazy for Filter) (Moritz)
 * UI (Moritz): Modify TB303Editor.h/.cpp
 
-## Needed DSP Blocks
-- Oscillator: `project/DSP/Oscillator` <> VCO
-- EnvelopeGenerator
-- Ramp
-- Filter
-- SynthVoice: structure combining oscillators, VCA/VCF envelopes, filter, LFO, ramps ==> fallbacks if we dont manage to make our own filter?
+## Development Roadmap & Assignments
 
-- TB303Voice
-- LadderFilter
-- AccentController.h
+### Phase 1: Core DSP Blocks (Oscillator & Envelopes)
 
-## Input knobs/Switch
-- Tuning
-- Cut-off freq
-- Resonance
-- Envelope modulation
-- Decay
-- Accent
-- Volume
-- Waveform switch (bool for Square or Saw)
+| Task / Feature | Assignee | Files to Modify | Deliverables |
+| :--- | :--- | :--- | :--- |
+| **VCO** | Giang | `projects/DSP/Oscillator.h`<br>`projects/DSP/Oscillator.cpp` | -- |
+| **VCA** | Giang | `projects/DSP/TB303.h`<br>`projects/DSP/TB303.cpp` | Instantiate and configure `vcaEnv` as a fast decay-only envelope shape. Ensure it triggers on `startNote` and maintains a stable un-attenuated volume platform. |
+| **VCF Transistor Ladder Filter** | María | `projects/DSP/LadderFilter.h`<br>`projects/DSP/LadderFilter.cpp` | -- |
+| **Synthesizer Voice Assembly & Routing** | Giang | `projects/DSP/TB303.cpp` | -- |
+| **Parameter Linkage & UI Generation** | Moritz | `projects/Synth303/TB303Editor.h`<br>`projects/Synth303/TB303Editor.cpp` | -- |
+
+---
+
+## Input Knobs & Controls Matrix
+
+| Control Param | Hardware Term | Structural Range Mapping |
+| :--- | :--- | :--- |
+| **Tuning** | Tuning | `[-12.0 to 12.0]` Semitones offset |
+| **Cut-off Freq** | Cut-off freq | `[20.0Hz to 20000.0Hz]` Exponential scaling |
+| **Resonance** | Resonance | `[0.0 to 1.0]` Scaled internally to Q factors `[0.5 to 4.0]` |
+| **Envelope Mod.** | Env Mod | `[-1.0 to 1.0]` Reversible depth tracking |
+| **Decay** | Decay | `[1.0ms to 1000.0ms]` Variable decay timeline curve |
+| **Accent** | Accent | `[0.0 to 1.0]` Dynamic velocity modifier depth |
+| **Volume** | Volume | `[-60.0dB to 12.0dB]` Output stage master amplifier gain |
+| **Waveform** | Waveform Switch | `[Saw, Square]` Boolean routing selector |
+
+## File System Structure
+
+```text
+aalto303/
+├── CMakeLists.txt                      # Project build system configuration
+├── cmake/
+│   └── add_plugin.cmake                # JUCE target builder macros
+├── mrta_utils/                         # Base framework shared abstractions
+│   └── BaseProcessor.h
+└── projects/
+    ├── DSP/                            # Pure Synthesis Core Engine
+    │   ├── EnvelopeGenerator.cpp
+    │   ├── EnvelopeGenerator.h
+    │   ├── LadderFilter.cpp            # Transistor-ladder emulation placeholder
+    │   ├── LadderFilter.h
+    │   ├── Oscillator.cpp              # Anti-aliased DPW Waveform Generator
+    │   ├── Oscillator.h
+    │   ├── Ramp.h                      # Parameter and Glide interpolation tool
+    │   ├── TB303.cpp                   # Voice management implementation
+    │   └── TB303.h                     # SynthesiserVoice & SynthesiserSound definitions
+    │
+    └── Synth303/                       # JUCE Processor Layer and GUI
+        ├── TB303Editor.cpp             # Layout drawing implementation
+        ├── TB303Editor.h               # Plugin UI window class wrapper
+        ├── TB303Processor.cpp          # System audio/MIDI buffer processing loop
+        └── TB303Processor.h            # Parameter ID and Range configurations
+```
+
 
 ## Getting started
 
