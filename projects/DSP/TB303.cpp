@@ -1,4 +1,5 @@
 #include "TB303.h"
+#include <algorithm>
 #include <cmath>
 
 namespace DSP
@@ -7,6 +8,18 @@ namespace DSP
 TB303Voice::TB303Voice()
 {
     // initialize ramps and defaults if needed
+    outputVolRamp.setTarget(1.0f, true); // default unity gain
+    cutoffRamp.setTarget(1000.0f, true); // default cutoff
+
+    vcaEnv.setAttackTime(0.1f);
+    vcaEnv.setDecayTime(0.1f);
+    vcaEnv.setSustainLevel(1.0f);
+    vcaEnv.setReleaseTime(200.f);
+
+    vcfEnv.setAttackTime(0.1f);
+    vcfEnv.setDecayTime(0.1f);
+    vcfEnv.setSustainLevel(1.0f);
+    vcfEnv.setReleaseTime(200.f);
 }
 
 TB303Voice::~TB303Voice()
@@ -37,7 +50,6 @@ void TB303Voice::setFilterCutoff(float Hz, bool skipRamp)
 {
     cutoffHz = Hz;
     cutoffRamp.setTarget(Hz, skipRamp);
-    filter.setCutoff(Hz);
 }
 
 void TB303Voice::setFilterResonance(float norm, bool skipRamp)
@@ -54,8 +66,10 @@ void TB303Voice::setEnvMod(float bipolar, bool skipRamp)
 
 void TB303Voice::setDecay(float ms)
 {
-    vcaEnv.setDecayTime(ms);
-    vcfEnv.setDecayTime(ms);
+    // TB-303 style decay controls release after the key is released.
+    // The note is held while the key is pressed, then decays on note-off.
+    vcaEnv.setReleaseTime(ms);
+    vcfEnv.setReleaseTime(ms);
 }
 
 void TB303Voice::setAccent(float norm, bool skipRamp)
@@ -92,7 +106,10 @@ void TB303Voice::stopNote(float velocity, bool allowTailOff)
     vcfEnv.end();
 
     if (!allowTailOff)
+    {
         clearCurrentNote();
+        currentNoteFreqHz = 0.0f;
+    }
 }
 
 void TB303Voice::pitchWheelMoved(int)
@@ -106,7 +123,67 @@ void TB303Voice::controllerMoved(int, int)
 
 void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
-    // placeholder: render audio
+    double newSampleRate = getSampleRate();
+    if (newSampleRate != sampleRate)
+    {
+        sampleRate = newSampleRate;
+        osc.prepare(sampleRate);
+        pitchRamp.prepare(sampleRate);
+        outputVolRamp.prepare(sampleRate);
+        cutoffRamp.prepare(sampleRate);
+        vcaEnv.prepare(sampleRate);
+        vcfEnv.prepare(sampleRate);
+        filter.prepare(sampleRate);
+    }
+
+    auto* leftBuffer = outputBuffer.getWritePointer(0, startSample);
+
+    if (currentNoteFreqHz <= 0.0f)
+    {
+        for (int n = 0; n < numSamples; ++n)
+            leftBuffer[n] = 0.0f;
+    }
+    else
+    {
+        for (int n = 0; n < numSamples; ++n)
+        {
+            const float freq = pitchRamp.getNext();
+            osc.setFrequency(freq);
+            float out = osc.process();
+
+            float vcfSample = 0.f;
+            vcfEnv.process(&vcfSample, 1);
+
+            float cutoff = cutoffRamp.getNext();
+            cutoff += envModDepth * vcfSample * MaxEnvModHz;
+            if (isAccented)
+                cutoff += AccentFilterBoostHz * accentAmount;
+
+            cutoff = std::clamp(cutoff, MinFreqHz, MaxFreqHz);
+            filter.setCutoff(cutoff);
+            filter.setResonance(resonanceNorm);
+            out = filter.process(out);
+
+            float envSample = 0.f;
+            vcaEnv.process(&envSample, 1);
+            out *= envSample;
+
+            if (isAccented)
+                out *= (1.0f + AccentVCABoost * accentAmount);
+
+            out *= outputVolRamp.getNext();
+            leftBuffer[n] = out;
+        }
+
+        if (vcaEnv.isOff() && vcfEnv.isOff())
+        {
+            clearCurrentNote();
+            currentNoteFreqHz = 0.0f;
+        }
+    }
+
+    if (outputBuffer.getNumChannels() > 1)
+        outputBuffer.copyFrom(1, startSample, outputBuffer, 0, startSample, numSamples);
 }
 
 float TB303Voice::midiNoteToHz(int midiNote) const

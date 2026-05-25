@@ -25,6 +25,8 @@ private:
 	double sampleRate { 48000.0 };
 	float cutoffHz { 1000.0f };
 	float resonanceNorm { 0.0f };
+	float state { 0.0f };
+	float coefficient { 0.0f };
 };
 
 }

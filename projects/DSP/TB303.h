@@ -98,9 +98,12 @@ public:
     // Ladder resonance range mapping: norm [0,1] -> Q [MinReso, MaxReso]
     static constexpr float MinReso { 0.5f };
     static constexpr float MaxReso { 4.0f };
+    
+    // Fixed envelope modulation range in Hz (additive, not multiplicative)
+    static constexpr float MaxEnvModHz { 4000.f };
 
 private:
-    double sampleRate { 1.0 };
+    double sampleRate { 0.0 };
 
     // --- VCO ---
     Oscillator osc;
@@ -110,7 +113,7 @@ private:
     // Pitch ramp handles slide between notes
     Ramp<float> pitchRamp;
     bool slideEnabled { false };
-    float currentNoteFreqHz { 440.f };  // target frequency of last note
+    float currentNoteFreqHz { 0.0f };  // target frequency of last note
  
     // --- VCF ---
     LadderFilter filter;
