@@ -157,8 +157,9 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
         const float effectiveResonance = std::clamp(resonanceNorm + accent * AccentResonanceBoost, 0.f, 1.f);
 
         // VCF cutoff is base cutoff plus envelope modulation, then smoothed.
+        // TODO: Ramp the EnvModeSweep depending on note frequency to better match the original TB303's behavior 
         const float targetCutoff = std::clamp(
-            cutoffHz + (vcfEnvOut * effectiveEnvMod * EnvModSweepHz) + (accent * AccentFilterBoostHz),
+            cutoffHz + (vcfEnvOut * (-1) * effectiveEnvMod * EnvModSweepHz) + (accent * AccentFilterBoostHz),
             MinFreqHz,
             MaxFreqHz);
 
