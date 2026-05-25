@@ -1,4 +1,5 @@
 #include "TB303.h"
+#include <algorithm>
 #include <cmath>
 
 namespace DSP
@@ -6,7 +7,14 @@ namespace DSP
 
 TB303Voice::TB303Voice()
 {
-    // initialize ramps and defaults if needed
+    osc.setType(Oscillator::OscType::SawAA);
+
+    const float tuned = applyTuning(currentNoteFreqHz);
+    pitchRamp.setTarget(tuned, true);
+    osc.setFrequency(tuned);
+
+    cutoffRamp.setTarget(cutoffHz, true);
+    outputVolRamp.setTarget(1.f, true);
 }
 
 TB303Voice::~TB303Voice()
@@ -35,21 +43,21 @@ void TB303Voice::setTuning(float semitones, bool skipRamp)
 
 void TB303Voice::setFilterCutoff(float Hz, bool skipRamp)
 {
-    cutoffHz = Hz;
-    cutoffRamp.setTarget(Hz, skipRamp);
-    filter.setCutoff(Hz);
+    cutoffHz = std::clamp(Hz, MinFreqHz, MaxFreqHz);
+    cutoffRamp.setTarget(cutoffHz, skipRamp);
+    filter.setCutoff(cutoffHz);
 }
 
 void TB303Voice::setFilterResonance(float norm, bool skipRamp)
 {
-    resonanceNorm = norm;
+    resonanceNorm = std::clamp(norm, 0.f, 1.f);
     // map normalized resonance to ladder implementation if needed
-    filter.setResonance(norm);
+    filter.setResonance(resonanceNorm);
 }
 
 void TB303Voice::setEnvMod(float bipolar, bool skipRamp)
 {
-    envModDepth = bipolar;
+    envModDepth = std::clamp(bipolar, -1.f, 1.f);
 }
 
 void TB303Voice::setDecay(float ms)
@@ -60,7 +68,7 @@ void TB303Voice::setDecay(float ms)
 
 void TB303Voice::setAccent(float norm, bool skipRamp)
 {
-    accentAmount = norm;
+    accentAmount = std::clamp(norm, 0.f, 1.f);
 }
 
 void TB303Voice::setVolume(float dB, bool skipRamp)
@@ -77,13 +85,17 @@ void TB303Voice::startNote(int midiNoteNumber, float velocity, juce::Synthesiser
 {
     currentNoteFreqHz = midiNoteToHz(midiNoteNumber);
     const float tuned = applyTuning(currentNoteFreqHz);
-    pitchRamp.setTarget(tuned);
+    pitchRamp.setTarget(tuned, !slideEnabled);
+    if (!slideEnabled)
+        osc.setFrequency(tuned);
 
     // accent decision
     isAccented = (velocity > AccentVelocityThreshold) && (accentAmount > 0.f);
 
     vcaEnv.start();
     vcfEnv.start();
+
+    voiceStarted = true;
 }
 
 void TB303Voice::stopNote(float velocity, bool allowTailOff)
@@ -106,7 +118,68 @@ void TB303Voice::controllerMoved(int, int)
 
 void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
-    // placeholder: render audio
+    // Handle possibly changed sample rate each render call
+    const auto newSampleRate { getSampleRate() };
+    if (sampleRate != newSampleRate)
+    {
+        sampleRate = newSampleRate;
+
+        // Call prepare func for all sample rate dependent components
+        osc.prepare(sampleRate);
+        vcaEnv.prepare(sampleRate);
+        vcfEnv.prepare(sampleRate); 
+
+        filter.prepare(sampleRate);
+
+        pitchRamp.prepare(sampleRate);
+        cutoffRamp.prepare(sampleRate);
+        outputVolRamp.prepare(sampleRate);
+
+    }    
+    
+    // Render Audio Block
+    for (int i = 0; i < numSamples; ++i)
+    {
+        const float freqHz = pitchRamp.getNext();
+        osc.setFrequency(freqHz);
+        const float oscOut = osc.process();
+
+        float vcaEnvOut { 0.f };
+        vcaEnv.process(&vcaEnvOut, 1);
+
+        float vcfEnvOut { 0.f };
+        vcfEnv.process(&vcfEnvOut, 1);
+    
+        const float accent = isAccented ? accentAmount : 0.f;
+
+        // Accent increases ENV MOD depth and resonance in the control path.
+        const float effectiveEnvMod = envModDepth * (1.f + accent * AccentEnvModBoost);
+        const float effectiveResonance = std::clamp(resonanceNorm + accent * AccentResonanceBoost, 0.f, 1.f);
+
+        // VCF cutoff is base cutoff plus envelope modulation, then smoothed.
+        const float targetCutoff = std::clamp(
+            cutoffHz + (vcfEnvOut * effectiveEnvMod * EnvModSweepHz) + (accent * AccentFilterBoostHz),
+            MinFreqHz,
+            MaxFreqHz);
+
+        
+        cutoffRamp.setTarget(targetCutoff);
+        filter.setCutoff(cutoffRamp.getNext());
+        filter.setResonance(effectiveResonance);
+
+        float sample = filter.process(oscOut);
+        sample *= vcaEnvOut * (1.f + accent * AccentVCABoost);
+        sample *= outputVolRamp.getNext();
+
+        for (int ch = 0; ch < outputBuffer.getNumChannels(); ++ch)
+            outputBuffer.addSample(ch, startSample + i, sample);
+
+        if (voiceStarted && vcaEnv.isOff() && vcfEnv.isOff())
+        {
+            voiceStarted = false;
+            clearCurrentNote();
+        }
+    }
 }
 
 float TB303Voice::midiNoteToHz(int midiNote) const

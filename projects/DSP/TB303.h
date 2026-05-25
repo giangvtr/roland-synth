@@ -91,6 +91,15 @@ public:
  
     // How much (in Hz) the accent boosts the filter cutoff peak
     static constexpr float AccentFilterBoostHz { 3000.f };
+
+    // ENV MOD sweep amount applied to VCF envelope output at depth = 1
+    static constexpr float EnvModSweepHz { 5000.f };
+
+    // Accent boosts ENV MOD depth by this fraction of the current depth
+    static constexpr float AccentEnvModBoost { 0.75f };
+
+    // Accent adds this amount to normalized resonance before clamping
+    static constexpr float AccentResonanceBoost { 0.2f };
  
     // How much the accent boosts the VCA (linear gain, on top of envelope)
     static constexpr float AccentVCABoost { 0.3f };
@@ -134,6 +143,8 @@ private:
  
     // Smooth cutoff ramp (avoids zipper noise when envMod sweeps cutoff)
     Ramp<float> cutoffRamp;
+
+    bool voiceStarted { false };
 };
 
 }
