@@ -115,6 +115,22 @@ void TB303Voice::controllerMoved(int, int)
 {
 }
 
+float TB303Voice::envModFreqScale(float noteFreqHz) const
+{
+    const float clampedNoteHz = std::clamp(noteFreqHz, EnvModMapMinNoteHz, EnvModMapMaxNoteHz);
+    const float norm = (clampedNoteHz - EnvModMapMinNoteHz) / (EnvModMapMaxNoteHz - EnvModMapMinNoteHz);
+    return EnvModScaleAtMinNote + norm * (EnvModScaleAtMaxNote - EnvModScaleAtMinNote);
+}
+
+float TB303Voice::computeTargetCutoffHz(float vcfEnvOut, float effectiveEnvMod, float accent, float noteFreqHz) const
+{
+    const float modScale = envModFreqScale(noteFreqHz);
+    const float envContributionHz = vcfEnvOut * (-1.f) * effectiveEnvMod * EnvModSweepHz * modScale;
+    const float accentContributionHz = accent * AccentFilterBoostHz;
+
+    return std::clamp(cutoffHz + envContributionHz + accentContributionHz, MinFreqHz, MaxFreqHz);
+}
+
 
 void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int startSample, int numSamples)
 {
@@ -156,12 +172,7 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
         const float effectiveEnvMod = envModDepth * (1.f + accent * AccentEnvModBoost);
         const float effectiveResonance = std::clamp(resonanceNorm + accent * AccentResonanceBoost, 0.f, 1.f);
 
-        // VCF cutoff is base cutoff plus envelope modulation, then smoothed.
-        // TODO: Ramp the EnvModeSweep depending on note frequency to better match the original TB303's behavior 
-        const float targetCutoff = std::clamp(
-            cutoffHz + (vcfEnvOut * (-1) * effectiveEnvMod * EnvModSweepHz) + (accent * AccentFilterBoostHz),
-            MinFreqHz,
-            MaxFreqHz);
+        const float targetCutoff = computeTargetCutoffHz(vcfEnvOut, effectiveEnvMod, accent, freqHz);
 
         
         cutoffRamp.setTarget(targetCutoff);

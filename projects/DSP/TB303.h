@@ -95,6 +95,14 @@ public:
     // ENV MOD sweep amount applied to VCF envelope output at depth = 1
     static constexpr float EnvModSweepHz { 5000.f };
 
+    // Tunable linear map for env-mod scaling vs played note frequency.
+    // At/under EnvModMapMinNoteHz -> EnvModScaleAtMinNote
+    // At/over  EnvModMapMaxNoteHz -> EnvModScaleAtMaxNote
+    static constexpr float EnvModMapMinNoteHz { 55.f };
+    static constexpr float EnvModMapMaxNoteHz { 880.f };
+    static constexpr float EnvModScaleAtMinNote { 0.1f };
+    static constexpr float EnvModScaleAtMaxNote { 0.85f };
+
     // Accent boosts ENV MOD depth by this fraction of the current depth
     static constexpr float AccentEnvModBoost { 0.75f };
 
@@ -140,6 +148,8 @@ private:
     // --- Helpers ---
     float midiNoteToHz(int midiNote) const;
     float applyTuning(float freqHz) const;
+    float envModFreqScale(float noteFreqHz) const;
+    float computeTargetCutoffHz(float vcfEnvOut, float effectiveEnvMod, float accent, float noteFreqHz) const;
  
     // Smooth cutoff ramp (avoids zipper noise when envMod sweeps cutoff)
     Ramp<float> cutoffRamp;
