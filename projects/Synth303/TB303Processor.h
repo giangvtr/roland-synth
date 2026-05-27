@@ -15,6 +15,7 @@ namespace Param
         static const juce::String Accent { "accent" };
         static const juce::String Volume { "volume" };
         static const juce::String Waveform { "waveform" };
+        static const juce::String SweepStrength { "sweep_strength" };
     }
 
     namespace Name
@@ -27,6 +28,7 @@ namespace Param
         static const juce::String Accent { "Accent" };
         static const juce::String Volume { "Volume" };
         static const juce::String Waveform { "Waveform" };
+        static const juce::String SweepStrength { "Sweep Strength" };
     }
 
     namespace Ranges
@@ -37,17 +39,17 @@ namespace Param
         static constexpr float TuningSkw { 1.0f };
 
         static constexpr float FilterFreqMin { 20.0f };
-        static constexpr float FilterFreqMax { 20000.f };
+        static constexpr float FilterFreqMax { 5000.f };
         static constexpr float FilterFreqInc { 1.f };
-        static constexpr float FilterFreqSkw { 0.15f };
+        static constexpr float FilterFreqSkw { 0.25f };
 
         static constexpr float ResonanceMin { 0.0f };
-        static constexpr float ResonanceMax { 1.0f };
+        static constexpr float ResonanceMax { 5.0f };
         static constexpr float ResonanceInc { 0.01f };
         static constexpr float ResonanceSkw { 0.5f };
 
         static constexpr float EnvModMin { -1.f };
-        static constexpr float EnvModMax { 1.f };
+        static constexpr float EnvModMax { 4.f };
         static constexpr float EnvModInc { 0.01f };
         static constexpr float EnvModSkw { 1.f };
 
@@ -67,6 +69,11 @@ namespace Param
         static constexpr float VolumeSkw { 2.8f };
 
         static const juce::StringArray WaveformType { "Saw", "Square" };
+
+        static constexpr float SweepStrengthMin { 0.f };
+        static constexpr float SweepStrengthMax { 1.f };
+        static constexpr float SweepStrengthInc { 0.01f };
+        static constexpr float SweepStrengthSkw { 1.f };
     }
 
     namespace Units

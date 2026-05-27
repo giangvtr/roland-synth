@@ -71,6 +71,9 @@ public:
 
     void setVolume(float dB, bool skipRamp = false);
 
+    // Sweep strength [0 .. 1] — scales the maximum octave range of the filter envelope sweep
+    void setSweepStrength(float norm, bool skipRamp = false);
+
     // Slide on/off + time, slide time typically ~60 ms in the original
     //void setSlide(bool enabled, float timeSec = 0.06f);
 
@@ -89,11 +92,11 @@ public:
 
     static constexpr float AccentVelocityThreshold { 0.5f };
  
-    // How much (in Hz) the accent boosts the filter cutoff peak
-    static constexpr float AccentFilterBoostHz { 3000.f };
+    // Accent opens the filter by this amount in octaves.
+    static constexpr float AccentCutoffBoostOctaves { 0.35f };
 
-    // ENV MOD sweep amount applied to VCF envelope output at depth = 1
-    static constexpr float EnvModSweepHz { 5000.f };
+    // ENV MOD sweep amount in octaves at depth = 1 and env = 1.
+    static constexpr float EnvModMaxOctaves { 4.5f };
 
     // Tunable linear map for env-mod scaling vs played note frequency.
     // At/under EnvModMapMinNoteHz -> EnvModScaleAtMinNote
@@ -111,13 +114,16 @@ public:
  
     // How much the accent boosts the VCA (linear gain, on top of envelope)
     static constexpr float AccentVCABoost { 0.3f };
+
+    // Accent pushes the filter input for extra bite.
+    static constexpr float AccentFilterDriveBoost { 0.35f };
+
+    // 303-style slide time.
+    static constexpr float SlideTimeSec { 0.06f };
  
     // Ladder resonance range mapping: norm [0,1] -> Q [MinReso, MaxReso]
     static constexpr float MinReso { 0.5f };
     static constexpr float MaxReso { 4.0f };
-    
-    // Fixed envelope modulation range in Hz (additive, not multiplicative)
-    static constexpr float MaxEnvModHz { 4000.f };
 
 private:
     double sampleRate { 0.0 };
@@ -126,10 +132,10 @@ private:
     Oscillator osc;
     bool useSaw { true };
     float tuningOffsetSemitones { 0.f };
- 
+
     // Pitch ramp handles slide between notes
     Ramp<float> pitchRamp;
-    bool slideEnabled { false };
+    bool slideEnabled { true };
     float currentNoteFreqHz { 0.0f };  // target frequency of last note
  
     // --- VCF ---
@@ -137,6 +143,7 @@ private:
     float cutoffHz { 1000.f };
     float resonanceNorm { 0.f };
     float envModDepth { 0.f };           // bipolar [-1..1]
+    float sweepStrength { 1.f };         // [0..1] scales EnvModMaxOctaves
  
     EnvelopeGenerator vcaEnv;   // easy Envelope gen
     EnvelopeGenerator vcfEnv;   // crazy envelope gen
@@ -158,6 +165,8 @@ private:
     Ramp<float> cutoffRamp;
 
     bool voiceStarted { false };
+    bool noteHeld { false };    // true while the key is physically held (cleared on note-off)
+    bool pendingSlide { false }; // set in stopNote during voice steal; consumed in startNote
 };
 
 }

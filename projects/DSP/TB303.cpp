@@ -10,17 +10,19 @@ TB303Voice::TB303Voice()
     // initialize ramps and defaults if needed
     osc.setType(Oscillator::OscType::SawAA);
 
+    pitchRamp.setRampTime(SlideTimeSec);
+
     cutoffRamp.setTarget(cutoffHz, true);
     outputVolRamp.setTarget(1.f, true);
 
     vcaEnv.setAttackTime(0.1f);
-    vcaEnv.setDecayTime(0.1f);
-    vcaEnv.setSustainLevel(1.0f);
+    vcaEnv.setDecayTime(200.f);
+    vcaEnv.setSustainLevel(0.0f);
     vcaEnv.setReleaseTime(200.f);
 
     vcfEnv.setAttackTime(0.1f);
-    vcfEnv.setDecayTime(0.1f);
-    vcfEnv.setSustainLevel(1.0f);
+    vcfEnv.setDecayTime(200.f);
+    vcfEnv.setSustainLevel(0.0f);
     vcfEnv.setReleaseTime(200.f);
 }
 
@@ -69,8 +71,11 @@ void TB303Voice::setEnvMod(float bipolar, bool skipRamp)
 
 void TB303Voice::setDecay(float ms)
 {
-    // TB-303 style decay controls release after the key is released.
-    // The note is held while the key is pressed, then decays on note-off.
+    // 303-like behavior: envelope shape is decay-driven (no sustain plateau).
+    vcaEnv.setDecayTime(ms);
+    vcfEnv.setDecayTime(ms);
+
+    // Keep release aligned so note-off tails remain consistent.
     vcaEnv.setReleaseTime(ms);
     vcfEnv.setReleaseTime(ms);
 }
@@ -85,6 +90,11 @@ void TB303Voice::setVolume(float dB, bool skipRamp)
     outputVolRamp.setTarget(std::pow(10.f, 0.05f * dB), skipRamp);
 }
 
+void TB303Voice::setSweepStrength(float norm, bool /*skipRamp*/)
+{
+    sweepStrength = std::clamp(norm, 0.f, 1.f);
+}
+
 bool TB303Voice::canPlaySound(juce::SynthesiserSound* ptr)
 {
     return dynamic_cast<SynthSound*>(ptr) != nullptr;
@@ -92,30 +102,65 @@ bool TB303Voice::canPlaySound(juce::SynthesiserSound* ptr)
 
 void TB303Voice::startNote(int midiNoteNumber, float velocity, juce::SynthesiserSound*, int)
 {
+    // pendingSlide is set by stopNote() when JUCE steals this voice for a new note
+    // while the previous key was still held. Consume the flag here.
+    const bool doSlide = pendingSlide;
+    pendingSlide = false;
+
     currentNoteFreqHz = midiNoteToHz(midiNoteNumber);
     const float tuned = applyTuning(currentNoteFreqHz);
-    pitchRamp.setTarget(tuned, !slideEnabled);
-    if (!slideEnabled)
+    pitchRamp.setTarget(tuned, !doSlide);
+    if (!doSlide)
         osc.setFrequency(tuned);
 
-    // accent decision
     isAccented = (velocity > AccentVelocityThreshold) && (accentAmount > 0.f);
 
-    vcaEnv.start();
-    vcfEnv.start();
+    if (!doSlide)
+    {
+        // Normal note: full retrigger.
+        vcaEnv.start();
+        vcfEnv.start();
+    }
+    else if (isAccented)
+    {
+        // Legato slide with accent: retrigger VCF env only for the filter snap.
+        vcfEnv.start();
+    }
+    // else: pure legato slide — envelopes continue uninterrupted.
 
+    noteHeld = true;
     voiceStarted = true;
 }
 
 void TB303Voice::stopNote(float velocity, bool allowTailOff)
 {
-    vcaEnv.end();
-    vcfEnv.end();
-
-    if (!allowTailOff)
+    if (allowTailOff)
     {
+        // Real key-release: clear held state and begin envelope release tails.
+        noteHeld = false;
+        vcaEnv.end();
+        vcfEnv.end();
+    }
+    else
+    {
+        // JUCE is stealing this voice to play a new note immediately.
+        // If slide is enabled and the key is still physically held, flag a slide
+        // for startNote() and leave the envelopes running.
+        if (slideEnabled && noteHeld)
+        {
+            pendingSlide = true;
+            // noteHeld stays true — the key is still down.
+        }
+        else
+        {
+            // Hard stop: note was already released or slide is off.
+            noteHeld = false;
+            vcaEnv.end();
+            vcfEnv.end();
+        }
+
+        // JUCE requires clearCurrentNote() here so it can assign startNote().
         clearCurrentNote();
-        currentNoteFreqHz = 0.0f;
     }
 }
 
@@ -137,10 +182,11 @@ float TB303Voice::envModFreqScale(float noteFreqHz) const
 float TB303Voice::computeTargetCutoffHz(float vcfEnvOut, float effectiveEnvMod, float accent, float noteFreqHz) const
 {
     const float modScale = envModFreqScale(noteFreqHz);
-    const float envContributionHz = vcfEnvOut * (-1.f) * effectiveEnvMod * EnvModSweepHz * modScale;
-    const float accentContributionHz = accent * AccentFilterBoostHz;
+    const float envOctaves = vcfEnvOut * effectiveEnvMod * EnvModMaxOctaves * modScale * sweepStrength;
+    const float accentOctaves = accent * AccentCutoffBoostOctaves;
 
-    return std::clamp(cutoffHz + envContributionHz + accentContributionHz, MinFreqHz, MaxFreqHz);
+    const float target = cutoffHz * std::pow(2.0f, envOctaves + accentOctaves);
+    return std::clamp(target, MinFreqHz, MaxFreqHz);
 }
 
 
@@ -189,13 +235,15 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
         filter.setCutoff(cutoffRamp.getNext());
         filter.setResonance(effectiveResonance);
 
-        float sample = filter.process(oscOut);
+        const float filterDrive = 1.f + accent * AccentFilterDriveBoost;
+        float sample = filter.process(oscOut * filterDrive);
 
         // Apply VCA
         float vcaEnvOut { 0.f };
         vcaEnv.process(&vcaEnvOut, 1);
 
-        sample *= vcaEnvOut;
+        const float accentVcaGain = 1.f + accent * AccentVCABoost;
+        sample *= vcaEnvOut * accentVcaGain;
         sample *= outputVolRamp.getNext();
 
         for (int ch = 0; ch < outputBuffer.getNumChannels(); ++ch)

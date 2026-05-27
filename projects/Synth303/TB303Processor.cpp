@@ -42,6 +42,11 @@ void setWaveform(const std::vector<DSP::TB303Voice*>& voices, bool useSaw)
     std::for_each(voices.begin(), voices.end(), [useSaw](auto* v) { v->setWaveform(useSaw); });
 }
 
+void setSweepStrength(const std::vector<DSP::TB303Voice*>& voices, float norm, bool skipRamp)
+{
+    std::for_each(voices.begin(), voices.end(), [norm, skipRamp](auto* v) { v->setSweepStrength(norm, skipRamp); });
+}
+
 // --- MAIN STABLE PARAMETER BOUNDS LAYOUT ---
 // Maps parameter definitions exactly to your project's TB303Processor.h file
 static const std::vector<mrta::ParameterInfo> paramVector
@@ -53,7 +58,8 @@ static const std::vector<mrta::ParameterInfo> paramVector
     { Param::ID::Decay,       Param::Name::Decay,       Param::Units::Ms,        200.f,  Param::Ranges::DecayMin,      Param::Ranges::DecayMax,      Param::Ranges::DecayInc,      Param::Ranges::DecaySkw },
     { Param::ID::Accent,      Param::Name::Accent,      Param::Units::Amount,    0.0f,   Param::Ranges::AccentMin,     Param::Ranges::AccentMax,     Param::Ranges::AccentInc,     Param::Ranges::AccentSkw },
     { Param::ID::Volume,      Param::Name::Volume,      Param::Units::dB,        0.0f,   Param::Ranges::VolumeMin,     Param::Ranges::VolumeMax,     Param::Ranges::VolumeInc,     Param::Ranges::VolumeSkw },
-    { Param::ID::Waveform,    Param::Name::Waveform,    Param::Ranges::WaveformType, 0 }
+    { Param::ID::Waveform,       Param::Name::Waveform,       Param::Ranges::WaveformType, 0 },
+    { Param::ID::SweepStrength,  Param::Name::SweepStrength,  Param::Units::Amount, 1.0f, Param::Ranges::SweepStrengthMin, Param::Ranges::SweepStrengthMax, Param::Ranges::SweepStrengthInc, Param::Ranges::SweepStrengthSkw }
 };
 
 TB303Processor::TB303Processor() :
@@ -80,12 +86,13 @@ TB303Processor::TB303Processor() :
     registerParameterCallback(Param::ID::Decay,       [this] (float value, bool force) { ::setDecay(voices, value); });
     registerParameterCallback(Param::ID::Accent,      [this] (float value, bool force) { ::setAccent(voices, value, force); });
     registerParameterCallback(Param::ID::Volume,      [this] (float value, bool force) { ::setVolume(voices, value, force); });
-    registerParameterCallback(Param::ID::Waveform,    [this] (float value, bool /*force*/) 
+    registerParameterCallback(Param::ID::Waveform,       [this] (float value, bool /*force*/) 
     { 
         // Index 0 = "Saw" (true), Index 1 = "Square" (false)
         bool useSaw = (static_cast<int>(std::round(value)) == 0);
         setWaveform(voices, useSaw); 
     });
+    registerParameterCallback(Param::ID::SweepStrength,  [this] (float value, bool force) { ::setSweepStrength(voices, value, force); });
 }
 
 TB303Processor::~TB303Processor()
