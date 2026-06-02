@@ -53,7 +53,7 @@ namespace DSP
         float cutoffHz    { 1000.0f }; // fc
         float resonanceNorm { 0.0f };  // res
         float Gcomp       { 0.5f };    // passband gain compensation
-        float Gres        { 0.0f };    // effective resonance (mapped from resonanceNorm)
+        float Gres        { 0.0f };    // feedback gain; range [0, ~5] maps directly to Gres
         float g           { 0.0f };    // feedback coeff at fs2
         float h0          { 0.0f };    // FIR part in each 1st-order section
         float h1          { 0.0f };

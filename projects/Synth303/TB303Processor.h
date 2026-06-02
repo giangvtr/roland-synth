@@ -57,7 +57,7 @@ namespace Param
         static constexpr float ResonanceSkw { 0.5f };
 
         static constexpr float EnvModMin { -1.f };
-        static constexpr float EnvModMax { 4.f };
+        static constexpr float EnvModMax { 2.f };
         static constexpr float EnvModInc { 0.01f };
         static constexpr float EnvModSkw { 1.f };
 

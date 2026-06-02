@@ -57,16 +57,16 @@ void TB303Voice::setFilterCutoff(float Hz, bool skipRamp)
     filter.setCutoff(Hz);
 }
 
-void TB303Voice::setFilterResonance(float norm, bool skipRamp)
+void TB303Voice::setFilterResonance(float value, bool skipRamp)
 {
-    resonanceNorm = std::clamp(norm, 0.f, 1.f);
-    // map normalized resonance to ladder implementation if needed
+    resonanceNorm = std::max(0.f, value);
     filter.setResonance(resonanceNorm);
 }
 
 void TB303Voice::setEnvMod(float bipolar, bool skipRamp)
 {
-    envModDepth = std::clamp(bipolar, -1.f, 1.f);
+    envModDepth = bipolar;
+    //envModDepth = std::clamp(bipolar, -1.f, 1.f);
 }
 
 void TB303Voice::setDecay(float ms)
@@ -247,7 +247,7 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
 
         // Accent increases ENV MOD depth and resonance in the control path.
         const float effectiveEnvMod = envModDepth * (1.f + accent * AccentEnvModBoost);
-        const float effectiveResonance = std::clamp(resonanceNorm + accent * AccentResonanceBoost, 0.f, 1.f);
+        const float effectiveResonance = std::max(0.f, resonanceNorm + accent * AccentResonanceBoost);
 
         const float targetCutoff = computeTargetCutoffHz(vcfEnvOut, effectiveEnvMod, accent, freqHz);
 

@@ -33,10 +33,10 @@ void LadderFilter::setCutoff(float hz)
     updateCoeffs();
 }
 
-void LadderFilter::setResonance(float norm)
+void LadderFilter::setResonance(float value)
 {
-    resonanceNorm = norm;
-    Gres = resonanceNorm; // direct mapping as in MATLAB
+    resonanceNorm = std::max(0.0f, value);
+    Gres = resonanceNorm;
 }
 
 float LadderFilter::process(float input)
