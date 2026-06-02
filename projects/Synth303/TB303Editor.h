@@ -37,6 +37,7 @@ private:
     mrta::ParameterSlider accentSlider;
     mrta::ParameterSlider volumeSlider;
     juce::TextButton waveformButton;
+    juce::TextButton filterTypeButton;
 
     juce::Label tuningLabel;
     juce::Label cutoffLabel;
@@ -45,10 +46,12 @@ private:
     juce::Label decayLabel;
     juce::Label accentLabel;
     juce::Label waveformLabel;
+    juce::Label filterTypeLabel;
     juce::Label volumeLabel;
 
     void setupLabel(juce::Label& label);
     void updateWaveformButtonText();
+    void updateFilterTypeButtonText();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TB303Editor)
 };

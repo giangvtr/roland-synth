@@ -42,6 +42,11 @@ void setWaveform(const std::vector<DSP::TB303Voice*>& voices, bool useSaw)
     std::for_each(voices.begin(), voices.end(), [useSaw](auto* v) { v->setWaveform(useSaw); });
 }
 
+void setFilterType(const std::vector<DSP::TB303Voice*>& voices, bool useLadder)
+{
+    std::for_each(voices.begin(), voices.end(), [useLadder](auto* v) { v->setFilterType(useLadder); });
+}
+
 void setSweepStrength(const std::vector<DSP::TB303Voice*>& voices, float norm, bool skipRamp)
 {
     std::for_each(voices.begin(), voices.end(), [norm, skipRamp](auto* v) { v->setSweepStrength(norm, skipRamp); });
@@ -78,7 +83,8 @@ static const std::vector<mrta::ParameterInfo> paramVector
     { Param::ID::Decay,       Param::Name::Decay,       Param::Units::Ms,        200.f,  Param::Ranges::DecayMin,      Param::Ranges::DecayMax,      Param::Ranges::DecayInc,      Param::Ranges::DecaySkw },
     { Param::ID::Accent,      Param::Name::Accent,      Param::Units::Amount,    0.0f,   Param::Ranges::AccentMin,     Param::Ranges::AccentMax,     Param::Ranges::AccentInc,     Param::Ranges::AccentSkw },
     { Param::ID::Volume,      Param::Name::Volume,      Param::Units::dB,        0.0f,   Param::Ranges::VolumeMin,     Param::Ranges::VolumeMax,     Param::Ranges::VolumeInc,     Param::Ranges::VolumeSkw },
-    { Param::ID::Waveform,       Param::Name::Waveform,       Param::Ranges::WaveformType, 0 },
+    { Param::ID::Waveform,       Param::Name::Waveform,       Param::Ranges::WaveformType,     0 },
+    { Param::ID::FilterType,     Param::Name::FilterType,     Param::Ranges::FilterTypeChoice, 0 },
     { Param::ID::SweepStrength,  Param::Name::SweepStrength,  Param::Units::Amount, 1.0f, Param::Ranges::SweepStrengthMin, Param::Ranges::SweepStrengthMax, Param::Ranges::SweepStrengthInc, Param::Ranges::SweepStrengthSkw },
     { Param::ID::EnvModMinNoteHz, Param::Name::EnvModMinNoteHz, Param::Units::Hz, 55.f,  Param::Ranges::EnvModNoteHzMin, Param::Ranges::EnvModNoteHzMax, Param::Ranges::EnvModNoteHzInc, Param::Ranges::EnvModNoteHzSkw },
     { Param::ID::EnvModMaxNoteHz, Param::Name::EnvModMaxNoteHz, Param::Units::Hz, 880.f, Param::Ranges::EnvModNoteHzMin, Param::Ranges::EnvModNoteHzMax, Param::Ranges::EnvModNoteHzInc, Param::Ranges::EnvModNoteHzSkw },
@@ -115,6 +121,12 @@ TB303Processor::TB303Processor() :
         // Index 0 = "Saw" (true), Index 1 = "Square" (false)
         bool useSaw = (static_cast<int>(std::round(value)) == 0);
         setWaveform(voices, useSaw); 
+    });
+    registerParameterCallback(Param::ID::FilterType,     [this] (float value, bool /*force*/)
+    {
+        // Index 0 = "Ladder" (true), Index 1 = "LPF" (false)
+        bool useLadder = (static_cast<int>(std::round(value)) == 0);
+        setFilterType(voices, useLadder);
     });
     registerParameterCallback(Param::ID::SweepStrength,  [this] (float value, bool force) { ::setSweepStrength(voices, value, force); });
     registerParameterCallback(Param::ID::EnvModMinNoteHz, [this] (float value, bool /*force*/) { ::setEnvModMinNoteHz(voices, value); });

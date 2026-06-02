@@ -8,6 +8,7 @@
 #include "EnvelopeGenerator.h"
 //#include "StateVariableFilter.h"
 #include "LadderFilter.h"
+#include "SimpleLPF.h"
 #include "Ramp.h"
 
 namespace DSP
@@ -48,6 +49,9 @@ public:
     // Parameters
     // Waveform switch
     void setWaveform(bool isSaw);
+
+    // Filter type: true = Ladder filter, false = 2-pole biquad LPF
+    void setFilterType(bool useLadder);
 
     // Tuning offset in semitones  [-12 .. +12]
     void setTuning(float semitones, bool skipRamp = false);
@@ -123,6 +127,9 @@ public:
     // Accent pushes the filter input for extra bite.
     static constexpr float AccentFilterDriveBoost { 0.35f };
 
+    // Gain compensation applied when the biquad LPF is active (-12 dB).
+    static constexpr float SimpleLPFGainComp { 0.251189f };  // 10^(-12/20)
+
     // 303-style slide time.
     static constexpr float SlideTimeSec { 0.06f };
  
@@ -145,6 +152,8 @@ private:
  
     // --- VCF ---
     LadderFilter filter;
+    SimpleLPF    lpfSimple;
+    bool useLadderFilter { true };
     float cutoffHz { 1000.f };
     float resonanceNorm { 0.f };
     float envModDepth { 0.f };           // bipolar [-1..1]

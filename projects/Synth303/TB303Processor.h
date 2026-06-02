@@ -15,6 +15,7 @@ namespace Param
         static const juce::String Accent { "accent" };
         static const juce::String Volume { "volume" };
         static const juce::String Waveform { "waveform" };
+        static const juce::String FilterType { "filter_type" };
         static const juce::String SweepStrength { "sweep_strength" };
         static const juce::String EnvModMinNoteHz { "envmod_min_note_hz" };
         static const juce::String EnvModMaxNoteHz { "envmod_max_note_hz" };
@@ -32,6 +33,7 @@ namespace Param
         static const juce::String Accent { "Accent" };
         static const juce::String Volume { "Volume" };
         static const juce::String Waveform { "Waveform" };
+        static const juce::String FilterType { "Filter Type" };
         static const juce::String SweepStrength { "Sweep Strength" };
         static const juce::String EnvModMinNoteHz { "EnvMod Min Note Hz" };
         static const juce::String EnvModMaxNoteHz { "EnvMod Max Note Hz" };
@@ -77,6 +79,7 @@ namespace Param
         static constexpr float VolumeSkw { 2.8f };
 
         static const juce::StringArray WaveformType { "Saw", "Square" };
+        static const juce::StringArray FilterTypeChoice { "Ladder", "LPF" };
 
         static constexpr float SweepStrengthMin { 0.f };
         static constexpr float SweepStrengthMax { 1.f };

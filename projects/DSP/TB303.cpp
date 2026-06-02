@@ -39,6 +39,11 @@ void TB303Voice::setWaveform(bool useSaw)
         osc.setType(Oscillator::OscType::SquareAA);
 }
 
+void TB303Voice::setFilterType(bool useLadder)
+{
+    useLadderFilter = useLadder;
+}
+
 void TB303Voice::setTuning(float semitones, bool skipRamp)
 {
     tuningOffsetSemitones = semitones;
@@ -55,12 +60,14 @@ void TB303Voice::setFilterCutoff(float Hz, bool skipRamp)
     cutoffHz = std::clamp(Hz, MinFreqHz, MaxFreqHz);
     cutoffRamp.setTarget(Hz, skipRamp);
     filter.setCutoff(Hz);
+    lpfSimple.setCutoff(Hz);
 }
 
 void TB303Voice::setFilterResonance(float value, bool skipRamp)
 {
     resonanceNorm = std::max(0.f, value);
     filter.setResonance(resonanceNorm);
+    lpfSimple.setResonance(resonanceNorm);
 }
 
 void TB303Voice::setEnvMod(float bipolar, bool skipRamp)
@@ -225,6 +232,7 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
         vcfEnv.prepare(sampleRate); 
 
         filter.prepare(sampleRate);
+        lpfSimple.prepare(sampleRate);
 
         pitchRamp.prepare(sampleRate);
         cutoffRamp.prepare(sampleRate);
@@ -252,11 +260,15 @@ void TB303Voice::renderNextBlock(juce::AudioBuffer<float>& outputBuffer, int sta
         const float targetCutoff = computeTargetCutoffHz(vcfEnvOut, effectiveEnvMod, accent, freqHz);
 
         cutoffRamp.setTarget(targetCutoff);
-        filter.setCutoff(cutoffRamp.getNext());
+        const float currentCutoff = cutoffRamp.getNext();
+        filter.setCutoff(currentCutoff);
         filter.setResonance(effectiveResonance);
+        lpfSimple.setCutoff(currentCutoff);
+        lpfSimple.setResonance(effectiveResonance);
 
         const float filterDrive = 1.f + accent * AccentFilterDriveBoost;
-        float sample = filter.process(oscOut * filterDrive);
+        float sample = useLadderFilter ? filter.process(oscOut * filterDrive)
+                                       : lpfSimple.process(oscOut * filterDrive) * SimpleLPFGainComp;
 
         // Apply VCA
         float vcaEnvOut { 0.f };

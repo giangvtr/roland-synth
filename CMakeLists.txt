@@ -53,6 +53,7 @@ add_plugin(synth303
         ${dsp_source}/Oscillator.cpp
         ${dsp_source}/EnvelopeGenerator.cpp
         ${dsp_source}/LadderFilter.cpp
+        ${dsp_source}/SimpleLPF.cpp
 
     INCLUDE_DIRS
         ${synth303_source}

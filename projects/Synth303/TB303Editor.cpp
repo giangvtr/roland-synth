@@ -115,7 +115,8 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
     decaySlider(Param::ID::Decay, processor.getParameterManager().getAPVTS()),
     accentSlider(Param::ID::Accent, processor.getParameterManager().getAPVTS()),
     volumeSlider(Param::ID::Volume, processor.getParameterManager().getAPVTS()),
-    waveformButton("Wave")
+    waveformButton("Wave"),
+    filterTypeButton("Filter")
 {
     setLookAndFeel(&customLookAndFeel);
 
@@ -133,6 +134,11 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
     waveformButton.setColour(juce::TextButton::textColourOnId, SWITCH_TEXT);
     waveformButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFDE2B2B));
 
+    filterTypeButton.setColour(juce::TextButton::buttonColourId, SWITCH_BACKGROUND);
+    filterTypeButton.setColour(juce::TextButton::textColourOffId, SWITCH_TEXT);
+    filterTypeButton.setColour(juce::TextButton::textColourOnId, SWITCH_TEXT);
+    filterTypeButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFFDE2B2B));
+
     tuningLabel.setText("Tuning", juce::dontSendNotification);
     cutoffLabel.setText("Cutoff", juce::dontSendNotification);
     resonanceLabel.setText("Resonance", juce::dontSendNotification);
@@ -140,6 +146,7 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
     decayLabel.setText("Decay", juce::dontSendNotification);
     accentLabel.setText("Accent", juce::dontSendNotification);
     waveformLabel.setText("Wave", juce::dontSendNotification);
+    filterTypeLabel.setText("Filter", juce::dontSendNotification);
     volumeLabel.setText("Volume", juce::dontSendNotification);
 
     addAndMakeVisible(tuningSlider);
@@ -150,6 +157,7 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
     addAndMakeVisible(accentSlider);
     addAndMakeVisible(volumeSlider);
     addAndMakeVisible(waveformButton);
+    addAndMakeVisible(filterTypeButton);
 
     setupLabel(tuningLabel);
     setupLabel(cutoffLabel);
@@ -158,9 +166,11 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
     setupLabel(decayLabel);
     setupLabel(accentLabel);
     setupLabel(waveformLabel);
+    setupLabel(filterTypeLabel);
     setupLabel(volumeLabel);
 
     updateWaveformButtonText();
+    updateFilterTypeButtonText();
 
     auto& apvts = processor.getParameterManager().getAPVTS();
     waveformButton.onClick = [this, &apvts]()
@@ -176,7 +186,21 @@ TB303Editor::TB303Editor(mrta::BaseProcessor& p) :
         updateWaveformButtonText();
     };
 
+    filterTypeButton.onClick = [this, &apvts]()
+    {
+        if (auto* parameter = apvts.getParameter(Param::ID::FilterType))
+        {
+            const float currentValue = parameter->getValue();
+            const float nextValue = (std::round(currentValue) == 0.0f) ? 1.0f : 0.0f;
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost(nextValue);
+            parameter->endChangeGesture();
+        }
+        updateFilterTypeButtonText();
+    };
+
     updateWaveformButtonText();
+    updateFilterTypeButtonText();
 
     setSize(GUI_WIDTH, GUI_HEIGHT);
 }
@@ -188,6 +212,16 @@ void TB303Editor::updateWaveformButtonText()
     {
         const int index = static_cast<int>(std::round(parameter->getValue()));
         waveformButton.setButtonText(index == 0 ? "Saw" : "Square");
+    }
+}
+
+void TB303Editor::updateFilterTypeButtonText()
+{
+    auto& apvts = processor.getParameterManager().getAPVTS();
+    if (auto* parameter = apvts.getParameter(Param::ID::FilterType))
+    {
+        const int index = static_cast<int>(std::round(parameter->getValue()));
+        filterTypeButton.setButtonText(index == 0 ? "Ladder" : "LPF");
     }
 }
 
@@ -258,8 +292,15 @@ void TB303Editor::resized()
     auto switchArea = bottomRow.removeFromLeft(bottomRow.getWidth() / 3).reduced(12, 12);
     auto volumeArea = bottomRow.reduced(12, 18);
 
-    waveformButton.setBounds(switchArea.removeFromTop(switchArea.getHeight() - LABEL_HEIGHT));
-    waveformLabel.setBounds(switchArea.removeFromTop(LABEL_HEIGHT));
+    // Split the switch area in half: left = waveform, right = filter type
+    auto waveArea   = switchArea.removeFromLeft(switchArea.getWidth() / 2);
+    auto filterArea = switchArea;
+
+    waveformButton.setBounds(waveArea.removeFromTop(waveArea.getHeight() - LABEL_HEIGHT));
+    waveformLabel.setBounds(waveArea.removeFromTop(LABEL_HEIGHT));
+
+    filterTypeButton.setBounds(filterArea.removeFromTop(filterArea.getHeight() - LABEL_HEIGHT));
+    filterTypeLabel.setBounds(filterArea.removeFromTop(LABEL_HEIGHT));
 
     auto volumeLabelArea = volumeArea.removeFromTop(LABEL_HEIGHT);
     auto volumeSliderArea = volumeArea.reduced(0, 6);
