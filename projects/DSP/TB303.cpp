@@ -95,6 +95,26 @@ void TB303Voice::setSweepStrength(float norm, bool /*skipRamp*/)
     sweepStrength = std::clamp(norm, 0.f, 1.f);
 }
 
+void TB303Voice::setEnvModMapMinNoteHz(float hz)
+{
+    envModMapMinNoteHz = std::clamp(hz, MinFreqHz, MaxFreqHz);
+}
+
+void TB303Voice::setEnvModMapMaxNoteHz(float hz)
+{
+    envModMapMaxNoteHz = std::clamp(hz, MinFreqHz, MaxFreqHz);
+}
+
+void TB303Voice::setEnvModScaleAtMinNote(float scale)
+{
+    envModScaleAtMinNote = std::clamp(scale, 0.f, 2.f);
+}
+
+void TB303Voice::setEnvModScaleAtMaxNote(float scale)
+{
+    envModScaleAtMaxNote = std::clamp(scale, 0.f, 2.f);
+}
+
 bool TB303Voice::canPlaySound(juce::SynthesiserSound* ptr)
 {
     return dynamic_cast<SynthSound*>(ptr) != nullptr;
@@ -174,9 +194,9 @@ void TB303Voice::controllerMoved(int, int)
 
 float TB303Voice::envModFreqScale(float noteFreqHz) const
 {
-    const float clampedNoteHz = std::clamp(noteFreqHz, EnvModMapMinNoteHz, EnvModMapMaxNoteHz);
-    const float norm = (clampedNoteHz - EnvModMapMinNoteHz) / (EnvModMapMaxNoteHz - EnvModMapMinNoteHz);
-    return EnvModScaleAtMinNote + norm * (EnvModScaleAtMaxNote - EnvModScaleAtMinNote);
+    const float clampedNoteHz = std::clamp(noteFreqHz, envModMapMinNoteHz, envModMapMaxNoteHz);
+    const float norm = (clampedNoteHz - envModMapMinNoteHz) / (envModMapMaxNoteHz - envModMapMinNoteHz);
+    return envModScaleAtMinNote + norm * (envModScaleAtMaxNote - envModScaleAtMinNote);
 }
 
 float TB303Voice::computeTargetCutoffHz(float vcfEnvOut, float effectiveEnvMod, float accent, float noteFreqHz) const

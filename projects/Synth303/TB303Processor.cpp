@@ -47,6 +47,26 @@ void setSweepStrength(const std::vector<DSP::TB303Voice*>& voices, float norm, b
     std::for_each(voices.begin(), voices.end(), [norm, skipRamp](auto* v) { v->setSweepStrength(norm, skipRamp); });
 }
 
+void setEnvModMinNoteHz(const std::vector<DSP::TB303Voice*>& voices, float hz)
+{
+    std::for_each(voices.begin(), voices.end(), [hz](auto* v) { v->setEnvModMapMinNoteHz(hz); });
+}
+
+void setEnvModMaxNoteHz(const std::vector<DSP::TB303Voice*>& voices, float hz)
+{
+    std::for_each(voices.begin(), voices.end(), [hz](auto* v) { v->setEnvModMapMaxNoteHz(hz); });
+}
+
+void setEnvModScaleMin(const std::vector<DSP::TB303Voice*>& voices, float scale)
+{
+    std::for_each(voices.begin(), voices.end(), [scale](auto* v) { v->setEnvModScaleAtMinNote(scale); });
+}
+
+void setEnvModScaleMax(const std::vector<DSP::TB303Voice*>& voices, float scale)
+{
+    std::for_each(voices.begin(), voices.end(), [scale](auto* v) { v->setEnvModScaleAtMaxNote(scale); });
+}
+
 // --- MAIN STABLE PARAMETER BOUNDS LAYOUT ---
 // Maps parameter definitions exactly to your project's TB303Processor.h file
 static const std::vector<mrta::ParameterInfo> paramVector
@@ -59,7 +79,11 @@ static const std::vector<mrta::ParameterInfo> paramVector
     { Param::ID::Accent,      Param::Name::Accent,      Param::Units::Amount,    0.0f,   Param::Ranges::AccentMin,     Param::Ranges::AccentMax,     Param::Ranges::AccentInc,     Param::Ranges::AccentSkw },
     { Param::ID::Volume,      Param::Name::Volume,      Param::Units::dB,        0.0f,   Param::Ranges::VolumeMin,     Param::Ranges::VolumeMax,     Param::Ranges::VolumeInc,     Param::Ranges::VolumeSkw },
     { Param::ID::Waveform,       Param::Name::Waveform,       Param::Ranges::WaveformType, 0 },
-    { Param::ID::SweepStrength,  Param::Name::SweepStrength,  Param::Units::Amount, 1.0f, Param::Ranges::SweepStrengthMin, Param::Ranges::SweepStrengthMax, Param::Ranges::SweepStrengthInc, Param::Ranges::SweepStrengthSkw }
+    { Param::ID::SweepStrength,  Param::Name::SweepStrength,  Param::Units::Amount, 1.0f, Param::Ranges::SweepStrengthMin, Param::Ranges::SweepStrengthMax, Param::Ranges::SweepStrengthInc, Param::Ranges::SweepStrengthSkw },
+    { Param::ID::EnvModMinNoteHz, Param::Name::EnvModMinNoteHz, Param::Units::Hz, 55.f,  Param::Ranges::EnvModNoteHzMin, Param::Ranges::EnvModNoteHzMax, Param::Ranges::EnvModNoteHzInc, Param::Ranges::EnvModNoteHzSkw },
+    { Param::ID::EnvModMaxNoteHz, Param::Name::EnvModMaxNoteHz, Param::Units::Hz, 880.f, Param::Ranges::EnvModNoteHzMin, Param::Ranges::EnvModNoteHzMax, Param::Ranges::EnvModNoteHzInc, Param::Ranges::EnvModNoteHzSkw },
+    { Param::ID::EnvModScaleMin,  Param::Name::EnvModScaleMin,  Param::Units::Amount, 0.1f,  Param::Ranges::EnvModScaleValMin, Param::Ranges::EnvModScaleValMax, Param::Ranges::EnvModScaleValInc, Param::Ranges::EnvModScaleValSkw },
+    { Param::ID::EnvModScaleMax,  Param::Name::EnvModScaleMax,  Param::Units::Amount, 0.85f, Param::Ranges::EnvModScaleValMin, Param::Ranges::EnvModScaleValMax, Param::Ranges::EnvModScaleValInc, Param::Ranges::EnvModScaleValSkw }
 };
 
 TB303Processor::TB303Processor() :
@@ -93,6 +117,10 @@ TB303Processor::TB303Processor() :
         setWaveform(voices, useSaw); 
     });
     registerParameterCallback(Param::ID::SweepStrength,  [this] (float value, bool force) { ::setSweepStrength(voices, value, force); });
+    registerParameterCallback(Param::ID::EnvModMinNoteHz, [this] (float value, bool /*force*/) { ::setEnvModMinNoteHz(voices, value); });
+    registerParameterCallback(Param::ID::EnvModMaxNoteHz, [this] (float value, bool /*force*/) { ::setEnvModMaxNoteHz(voices, value); });
+    registerParameterCallback(Param::ID::EnvModScaleMin,  [this] (float value, bool /*force*/) { ::setEnvModScaleMin(voices, value); });
+    registerParameterCallback(Param::ID::EnvModScaleMax,  [this] (float value, bool /*force*/) { ::setEnvModScaleMax(voices, value); });
 }
 
 TB303Processor::~TB303Processor()

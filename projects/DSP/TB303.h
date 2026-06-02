@@ -101,10 +101,15 @@ public:
     // Tunable linear map for env-mod scaling vs played note frequency.
     // At/under EnvModMapMinNoteHz -> EnvModScaleAtMinNote
     // At/over  EnvModMapMaxNoteHz -> EnvModScaleAtMaxNote
-    static constexpr float EnvModMapMinNoteHz { 55.f };
-    static constexpr float EnvModMapMaxNoteHz { 880.f };
-    static constexpr float EnvModScaleAtMinNote { 0.1f };
-    static constexpr float EnvModScaleAtMaxNote { 0.85f };
+    static constexpr float EnvModMapMinNoteHzDefault { 100.f };
+    static constexpr float EnvModMapMaxNoteHzDefault { 880.f };
+    static constexpr float EnvModScaleAtMinNoteDefault { 0.25f };
+    static constexpr float EnvModScaleAtMaxNoteDefault { 1.65f };
+
+    void setEnvModMapMinNoteHz(float hz);
+    void setEnvModMapMaxNoteHz(float hz);
+    void setEnvModScaleAtMinNote(float scale);
+    void setEnvModScaleAtMaxNote(float scale);
 
     // Accent boosts ENV MOD depth by this fraction of the current depth
     static constexpr float AccentEnvModBoost { 0.75f };
@@ -160,6 +165,11 @@ private:
     float applyTuning(float freqHz) const;
     float envModFreqScale(float noteFreqHz) const;
     float computeTargetCutoffHz(float vcfEnvOut, float effectiveEnvMod, float accent, float noteFreqHz) const;
+
+    float envModMapMinNoteHz   { EnvModMapMinNoteHzDefault };
+    float envModMapMaxNoteHz   { EnvModMapMaxNoteHzDefault };
+    float envModScaleAtMinNote { EnvModScaleAtMinNoteDefault };
+    float envModScaleAtMaxNote { EnvModScaleAtMaxNoteDefault };
  
     // Smooth cutoff ramp (avoids zipper noise when envMod sweeps cutoff)
     Ramp<float> cutoffRamp;

@@ -16,6 +16,10 @@ namespace Param
         static const juce::String Volume { "volume" };
         static const juce::String Waveform { "waveform" };
         static const juce::String SweepStrength { "sweep_strength" };
+        static const juce::String EnvModMinNoteHz { "envmod_min_note_hz" };
+        static const juce::String EnvModMaxNoteHz { "envmod_max_note_hz" };
+        static const juce::String EnvModScaleMin { "envmod_scale_min" };
+        static const juce::String EnvModScaleMax { "envmod_scale_max" };
     }
 
     namespace Name
@@ -29,6 +33,10 @@ namespace Param
         static const juce::String Volume { "Volume" };
         static const juce::String Waveform { "Waveform" };
         static const juce::String SweepStrength { "Sweep Strength" };
+        static const juce::String EnvModMinNoteHz { "EnvMod Min Note Hz" };
+        static const juce::String EnvModMaxNoteHz { "EnvMod Max Note Hz" };
+        static const juce::String EnvModScaleMin { "EnvMod Scale Min" };
+        static const juce::String EnvModScaleMax { "EnvMod Scale Max" };
     }
 
     namespace Ranges
@@ -74,6 +82,16 @@ namespace Param
         static constexpr float SweepStrengthMax { 1.f };
         static constexpr float SweepStrengthInc { 0.01f };
         static constexpr float SweepStrengthSkw { 1.f };
+
+        static constexpr float EnvModNoteHzMin { 20.f };
+        static constexpr float EnvModNoteHzMax { 20000.f };
+        static constexpr float EnvModNoteHzInc { 1.f };
+        static constexpr float EnvModNoteHzSkw { 0.25f };
+
+        static constexpr float EnvModScaleValMin { 0.f };
+        static constexpr float EnvModScaleValMax { 2.f };
+        static constexpr float EnvModScaleValInc { 0.01f };
+        static constexpr float EnvModScaleValSkw { 1.f };
     }
 
     namespace Units
