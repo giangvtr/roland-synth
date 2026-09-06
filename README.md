@@ -1,154 +1,125 @@
-# Roland TB-303 Synthethizer Baseline clone
-- The original synth: https://en.wikipedia.org/wiki/Roland_TB-303
-- Signal flow: https://www.tinyloops.com/tb303/sound_signalflow.html
+# Synth303 — Roland TB-303 Baseline Clone
 
-## Tasks
-* Scaffold (Placeholders for VCO VCF VCA ENV DECAY(?)) Giang
-* VCF (Ladder Filter) (Maybe?????) María
-* VCO (Giang)
-* VCA (Giang)
-* ENV (Easy for AMP) (Moritz)
-* ENV (Crazy for Filter) (Moritz)
-* UI (Moritz): Modify TB303Editor.h/.cpp
+A real-time software emulation of the Roland TB-303 Bass Line synthesizer, built as a JUCE audio plugin (VST3 / AU / Standalone).
 
-## Development Roadmap & Assignments
+By Giang, María, and Moritz (Modern Real-Time Audio course project).
 
-### Phase 1: Core DSP Blocks (Oscillator & Envelopes)
+References: [TB-303](https://en.wikipedia.org/wiki/Roland_TB-303) · [Signal flow](https://www.tinyloops.com/tb303/sound_signalflow.html)
 
-| Task / Feature | Assignee | Files to Modify | Deliverables |
-| :--- | :--- | :--- | :--- |
-| **VCO** | Giang | `projects/DSP/Oscillator.h`<br>`projects/DSP/Oscillator.cpp` | -- |
-| **VCA** | Giang | `projects/DSP/TB303.h`<br>`projects/DSP/TB303.cpp` | Instantiate and configure `vcaEnv` as a fast decay-only envelope shape. Ensure it triggers on `startNote` and maintains a stable un-attenuated volume platform. |
-| **VCF Transistor Ladder Filter** | María | `projects/DSP/LadderFilter.h`<br>`projects/DSP/LadderFilter.cpp` | -- |
-| **Synthesizer Voice Assembly & Routing** | Giang | `projects/DSP/TB303.cpp` | -- |
-| **Parameter Linkage & UI Generation** | Moritz | `projects/Synth303/TB303Editor.h`<br>`projects/Synth303/TB303Editor.cpp` | -- |
+## Overview
 
----
+The Roland TB-303 defined the acid house sound with its squelchy, resonant filter sweeps. Synth303 recreates its core in software: a monophonic voice driving an anti-aliased oscillator through a resonant transistor-ladder filter, shaped by fast decay envelopes with accent.
 
-## Input Knobs & Controls Matrix
+It's built on JUCE and a shared MRTA (Modern Real-Time Audio) utility layer that handles parameter management and GUI generation, and builds to standard plugin formats for use in any modern DAW or as a standalone app.
 
-| Control Param | Hardware Term | Structural Range Mapping |
-| :--- | :--- | :--- |
-| **Tuning** | Tuning | `[-12.0 to 12.0]` Semitones offset |
-| **Cut-off Freq** | Cut-off freq | `[20.0Hz to 20000.0Hz]` Exponential scaling |
-| **Resonance** | Resonance | `[0.0 to 1.0]` Scaled internally to Q factors `[0.5 to 4.0]` |
-| **Envelope Mod.** | Env Mod | `[-1.0 to 1.0]` Reversible depth tracking |
-| **Decay** | Decay | `[1.0ms to 1000.0ms]` Variable decay timeline curve |
-| **Accent** | Accent | `[0.0 to 1.0]` Dynamic velocity modifier depth |
-| **Volume** | Volume | `[-60.0dB to 12.0dB]` Output stage master amplifier gain |
-| **Waveform** | Waveform Switch | `[Saw, Square]` Boolean routing selector |
+## Features
 
-## File System Structure
+* Anti-aliased oscillator — DPW (Differentiated Parabolic Waveform) generation with Saw and Square waveforms
+* Transistor ladder filter (VCF) with envelope-modulated cutoff
+* Dual envelopes — a fast amplitude (VCA) envelope and a decay-driven filter envelope
+* Accent and glide — velocity accent depth and parameter interpolation for authentic slides
+* Cross-format — VST3, AU (macOS), or Standalone from a single CMake configuration
+
+## Architecture
 
 ```text
-aalto303/
-├── CMakeLists.txt                      # Project build system configuration
-├── cmake/
-│   └── add_plugin.cmake                # JUCE target builder macros
-├── mrta_utils/                         # Base framework shared abstractions
-│   └── BaseProcessor.h
-└── projects/
-    ├── DSP/                            # Pure Synthesis Core Engine
-    │   ├── EnvelopeGenerator.cpp
-    │   ├── EnvelopeGenerator.h
-    │   ├── LadderFilter.cpp            # Transistor-ladder emulation placeholder
-    │   ├── LadderFilter.h
-    │   ├── Oscillator.cpp              # Anti-aliased DPW Waveform Generator
-    │   ├── Oscillator.h
-    │   ├── Ramp.h                      # Parameter and Glide interpolation tool
-    │   ├── TB303.cpp                   # Voice management implementation
-    │   └── TB303.h                     # SynthesiserVoice & SynthesiserSound definitions
-    │
-    └── Synth303/                       # JUCE Processor Layer and GUI
-        ├── TB303Editor.cpp             # Layout drawing implementation
-        ├── TB303Editor.h               # Plugin UI window class wrapper
-        ├── TB303Processor.cpp          # System audio/MIDI buffer processing loop
-        └── TB303Processor.h            # Parameter ID and Range configurations
+              ┌──────────────────────────┐
+              │   TB303Processor (JUCE)  │  audio/MIDI buffer loop
+              │   TB303Editor (GUI)      │  parameter UI
+              └────────────┬─────────────┘
+                           │  parameters
+                           ▼
+              ┌──────────────────────────┐
+              │       TB303 Voice        │  voice management & routing
+              └────────────┬─────────────┘
+                           │
+        ┌──────────┬───────┴───────┬──────────────┐
+        ▼          ▼               ▼              ▼
+   ┌─────────┐ ┌─────────┐   ┌──────────┐  ┌──────────────┐
+   │   VCO   │ │   VCF   │   │   VCA    │  │  Envelope    │
+   │Oscillator│→│ Ladder │ → │  (gain)  │← │  Generator   │
+   └─────────┘ │ Filter  │   └──────────┘  └──────────────┘
+               └─────────┘
 ```
 
+The DSP core is pure, framework-agnostic C++. The Synth303 layer wraps it in JUCE's processor/editor model, and the MRTA utilities provide parameter storage, a thread-safe parameter FIFO, and a generic parameter editor.
+
+### Tech stack
+
+| Layer        | Technology                        |
+| ------------ | --------------------------------- |
+| DSP core     | C++ (JUCE-independent)            |
+| Plugin/host  | JUCE (VST3 / AU / Standalone)     |
+| Build system | CMake 3.25+                       |
+| Platforms    | Linux, macOS (universal), Windows |
+
+## Controls
+
+| Control       | Hardware Term   | Range Mapping                     |
+| ------------- | --------------- | --------------------------------- |
+| Tuning        | Tuning          | `[-12.0, 12.0]` semitone offset   |
+| Cut-off Freq  | Cut-off freq    | `[20 Hz, 20 kHz]` exponential     |
+| Resonance     | Resonance       | `[0.0, 1.0]` → internal Q `[0.5, 4.0]` |
+| Envelope Mod. | Env Mod         | `[-1.0, 1.0]` reversible depth    |
+| Decay         | Decay           | `[1 ms, 1000 ms]` decay timeline  |
+| Accent        | Accent          | `[0.0, 1.0]` velocity modifier    |
+| Volume        | Volume          | `[-60 dB, +12 dB]` master gain    |
+| Waveform      | Waveform Switch | `Saw` / `Square`                  |
+
+## Technical notes
+
+**Anti-aliased oscillator (DPW).** Naïve saw/square generation aliases badly at high pitches. The oscillator uses the Differentiated Parabolic Waveform method — synthesizing a smooth polynomial and differentiating it — to suppress aliased partials cheaply enough to run per-sample in real time.
+
+**Envelope-driven filter.** The acid character comes from the interaction between the resonant ladder filter and a fast, decay-only filter envelope, scaled by the Env Mod and Accent controls. The decay curve and modulation depth — not the filter topology alone — are what make it recognizably a 303.
 
 ## Getting started
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Prerequisites: a C++ toolchain (Clang / GCC / MSVC), CMake 3.25+, and JUCE's platform dependencies (see the JUCE docs for Linux system packages).
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Configure — creates `build/` and fetches JUCE:
 
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://version.aalto.fi/gitlab/clusm1/aalto303.git
-git branch -M main
-git push -uf origin main
+```bash
+./configure.sh
 ```
 
-## Integrate with your tools
+Build — `build.sh <target> <format> <config> <jobs>`:
 
-* [Set up project integrations](https://version.aalto.fi/gitlab/clusm1/aalto303/-/settings/integrations)
+```bash
+./build.sh synth303 Standalone Release
+```
 
-## Collaborate with your team
+* format — `VST3`, `AU` (macOS only), or `Standalone` (default)
+* config — `Release` or `Debug` (default)
+* jobs — concurrent build jobs (default `4`)
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+The built plugin/app is placed under `build/`.
 
-## Test and Deploy
+## Project structure
 
-Use the built-in continuous integration in GitLab.
+```text
+aalto303/
+├── CMakeLists.txt              # Build system configuration
+├── configure.sh               # Generate build/ and fetch JUCE
+├── build.sh                   # Build a target/format/config
+├── cmake/add_plugin.cmake     # JUCE target builder macros
+├── mrta_utils/                # Shared framework abstractions
+│   ├── Processor/             # BaseProcessor
+│   ├── Parameter/             # Parameter manager, FIFO, info
+│   └── GUI/                   # Generic parameter editor, knobs
+└── projects/
+    ├── DSP/                   # Pure synthesis core engine
+    │   ├── Oscillator.*       # Anti-aliased DPW waveform generator
+    │   ├── LadderFilter.*     # Transistor-ladder emulation
+    │   ├── EnvelopeGenerator.*
+    │   ├── Ramp.h             # Parameter/glide interpolation
+    │   └── TB303.*            # Voice & sound definitions
+    └── Synth303/              # JUCE processor & GUI layer
+        ├── TB303Processor.*   # Audio/MIDI buffer processing
+        └── TB303Editor.*      # Plugin UI
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+`projects/example/` contains reference JUCE examples and `snipets/` holds standalone C++ concept demos; neither is part of the plugin build.
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
