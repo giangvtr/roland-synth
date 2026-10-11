@@ -5,6 +5,7 @@ A real-time software emulation of the Roland TB-303 Bass Line synthesizer, built
 By Giang, María, and Moritz (Modern Real-Time Audio course project).
 
 References: [TB-303](https://en.wikipedia.org/wiki/Roland_TB-303) · [Signal flow](https://www.tinyloops.com/tb303/sound_signalflow.html)
+![Project IHM](./ihm.png)
 
 ## Overview
 
